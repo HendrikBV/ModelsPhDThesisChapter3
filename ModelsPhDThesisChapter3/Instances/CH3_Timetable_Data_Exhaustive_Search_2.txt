@@ -1,0 +1,83 @@
+Timetable_Data_Exhaustive_Search_2.txt
+
+5
+8
+1
+0
+8
+5
+
+Event_1
+Event_2
+Event_3
+Event_4
+Event_5
+
+Eventgroup_1
+Eventgroup_2
+Eventgroup_3
+Eventgroup_4
+Eventgroup_5
+Eventgroup_6
+Eventgroup_7
+Eventgroup_8
+
+Room_1
+Room_2
+Room_3
+Room_4
+Room_5
+Room_6
+Room_7
+Room_8
+
+0	0	0	0	1
+0	1	0	0	0
+0	0	0	0	0
+0	0	1	0	0
+0	0	0	1	0
+0	0	0	0	0
+1	0	0	0	0
+0	0	0	0	0
+
+1	1	1	1	1	1	1	1
+1	1	0	1	1	0	1	1
+1	0	1	1	1	0	0	0
+1	1	1	0	1	0	1	1
+1	1	1	1	1	1	0	1
+
+19
+23
+21
+9
+21
+
+21
+23
+22
+21
+9
+6
+19
+7
+
+1	0	0	0	0
+0	1	0	0	0
+0	0	1	0	0
+0	0	0	1	0
+0	0	0	0	1
+
+15
+20
+0
+5
+5
+
+0
+0
+0
+0
+0
+0
+0
+0
