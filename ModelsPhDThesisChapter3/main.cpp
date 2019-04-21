@@ -16,8 +16,6 @@
 
 int main()
 {
-	// 2. SUM OVER TIMESLOTS
-	std::vector<int> obj_first_stage_instances = { 10080, 0, 150, 17180, 3040, 168200, 5130, 2000 };
 	for (int instance = 0; instance < 8; ++instance)
 	{
 		try
@@ -27,7 +25,7 @@ int main()
 			if (instance == 0)
 				filename_timetabledata = "Instances/KUL_CH3.txt";
 			else
-				filename_timetabledata = "Instances/comp0" + std::to_string(instance) + ".txt";
+				filename_timetabledata = "Instances/Comp0" + std::to_string(instance) + ".txt";
 			alg::read_timetable_data(filename_timetabledata);
 
 			// Read building data
@@ -47,15 +45,15 @@ int main()
 			{
 				try
 				{
-					alg::heuristic heuristic;
-					heuristic._alpha = 1;
-					heuristic._lambda = 0;
-					heuristic._objective_type = alg::heuristic::objective_type::sum_over_timeslots;
-					heuristic._LAHC_list_length = 500;
-					heuristic._time_limit = 1000;
-					heuristic._constraint_preferences = true;
-					heuristic._constraint_preferences = obj_first_stage_instances.at(instance);
-					heuristic._penalty_value_constraint_violation = 100000;
+					alg::heuristic_master heuristic;
+					alg::heuristic_master::_penalty_value_constraint_violation = 100000;
+					alg::heuristic_master::_lambda = 0;
+					alg::heuristic_master::_time_limit = 1000;
+					alg::heuristic_master::_SA_start_temperature = 100000;
+					alg::heuristic_master::_SA_alpha = 0.9;
+					alg::heuristic_master::_SA_Tmin = 0.1;
+					alg::heuristic_master::_nb_synchronizations = 40;
+					alg::heuristic_master::_nb_threads = 12;
 
 					heuristic.run();
 				}

@@ -1,13 +1,14 @@
 /*!
 *	@file	heuristic.h
 *	@author		Hendrik Vermuyten
-*	@brief	A heuristic for the monolithic problem.
+*	@brief	A heuristic for the monolithic problem with multithreaded implementation.
 */
 
 #ifndef HEURISTIC_H
 #define HEURISTIC_H
 
 #include <vector>
+#include <iostream>
 #include "heuristic_utilities.h"
 
 /*!
@@ -16,89 +17,42 @@
 */
 namespace alg
 {
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	/*!
-	*	@brief	A heuristic for the monolithic problem.
+	*	@brief	A POD to store the different components of the objective value.
 	*/
-	class heuristic
+	struct information_objective_value
 	{
 		/*!
-		*	@brief	Name of the algorithm.
+		*	@brief	The overall objective value.
 		*/
-		static constexpr const char * algorithm_name = "LAHC Heuristic";
+		double objective_value = 1e20;
 
 		/*!
-		*	@brief	The objective value of the current solution.
+		*	@brief	The number of constraint violations for the scheduling conflicts.
 		*/
-		double current_objective = 1e20;
+		double constraint_violations_scheduling_conflicts;
 
 		/*!
-		*	@brief	The objective value of the best found solution.
+		*	@brief	The number of constraint violations for the room compatibilities.
 		*/
-		double best_objective = 1e20;
+		double constraint_violations_correct_room;
 
 		/*!
-		*	@brief	The current timetable solution.
-		*	Matrix in which the rows indicate the timeslot and the columns the room.
-		*	The value in a cell indicates the lecture that is assigned to that timeslot and room.
+		*	@brief	The number of teacher working time violations.
 		*/
-		matrix2D<int> current_solution;
+		double constraint_violations_teacher_working_time;
 
 		/*!
-		*	@brief	The best timetable solution found during the search process.
-		*	Matrix in which the rows indicate the timeslot and the columns the room.
-		*	The value in a cell indicates the lecture that is assigned to that timeslot and room.
+		*	@brief	The number of constraint violations for the compactness constraints.
 		*/
-		matrix2D<int> best_solution;
+		double constraint_violations_compactness_constraints;
 
 		/*!
-		*	@brief	Count and remember the number of constraint violations for the scheduling conflicts.
+		*	@brief	The preference score.
 		*/
-		size_t constraint_violations_scheduling_conflicts;
-
-		/*!
-		*	@brief	Count and remember the number of constraint violations for the scheduling conflicts when recalculating the objective value for a candidate solution.
-		*/
-		size_t new_constraint_violations_scheduling_conflicts;
-
-		/*!
-		*	@brief	Count and remember the number of constraint violations for the room compatibilities.
-		*/
-		size_t constraint_violations_correct_room;
-
-		/*!
-		*	@brief	Count and remember the number of constraint violations for the room compatibilities when recalculating the objective value for a candidate solution.
-		*/
-		size_t new_constraint_violations_correct_room;
-
-		/*!
-		*	@brief	Count and remember the number of teacher working time violations.
-		*/
-		size_t constraint_violations_teacher_working_time;
-
-		/*!
-		*	@brief	Count and remember the number of teacher working time violations when recalculating the objective value for a candidate solution.
-		*/
-		size_t new_constraint_violations_teacher_working_time;
-
-		/*!
-		*	@brief	Count and remember the number of constraint violations for the compactness constraints.
-		*/
-		size_t constraint_violations_compactness_constraints;
-
-		/*!
-		*	@brief	Count and remember the number of constraint violations for the compactness constraints when recalculating the objective value for a candidate solution.
-		*/
-		size_t new_constraint_violations_compactness_constraints;
-
-		/*!
-		*	@brief	Calculate and remember the preference score.
-		*/
-		size_t preference_score;
-
-		/*!
-		*	@brief	Calculate and remember the preference score when recalculating the objective value for a candidate solution.
-		*/
-		size_t new_preference_score;
+		double preference_score;
 
 
 		/*!
@@ -128,30 +82,111 @@ namespace alg
 		std::vector<double> evacuations_timeslot_max_travel_time;
 
 		/*!
-		*	@brief	3DMatrix in which the rows indicate the timeslot, the columns the lecture, and the depth the path.
-		*			The value in a cell indicates the fraction of people from the given lecture that use a given path in the given timeslot to travel to their next lecture.
+		*	@brief	Assignment operator.
+		*	@param	other	Another object to save info from.
 		*/
-		matrix3D<double> travels_timeslot_series_uses_path;
+		information_objective_value& operator=(const information_objective_value &other)
+		{
+			if (this != &other)
+			{
+				objective_value = other.objective_value;
+
+				constraint_violations_scheduling_conflicts = other.constraint_violations_scheduling_conflicts;
+				constraint_violations_correct_room = other.constraint_violations_correct_room;
+				constraint_violations_teacher_working_time = other.constraint_violations_teacher_working_time;
+				constraint_violations_compactness_constraints = other.constraint_violations_compactness_constraints;
+				preference_score = other.preference_score;
+
+				evacuations_timeslot_lecture_uses_path = other.evacuations_timeslot_lecture_uses_path;
+				evacuations_timeslot_flow_per_arc = other.evacuations_timeslot_flow_per_arc;
+				evacuations_timeslot_time_per_arc = other.evacuations_timeslot_time_per_arc;
+				evacuations_timeslot_lecture_travel_time = other.evacuations_timeslot_lecture_travel_time;
+				evacuations_timeslot_max_travel_time = other.evacuations_timeslot_max_travel_time;
+			}
+			return *this;
+		}
 
 		/*!
-		*	@brief	Matrix in which the rows indicate the timeslot and the columns the flow on each arc for travelling between consecutive lectures.
+		*	@brief	Print the values to screen.
 		*/
-		matrix2D<double> travels_timeslot_flow_per_arc;
+		void print()
+		{
+			std::cout << "\nNumber of scheduling conflicts: " << constraint_violations_scheduling_conflicts;
+			std::cout << "\nNumber of room violations: " << constraint_violations_correct_room;
+			std::cout << "\nNumber of teacher working time violations: " << constraint_violations_teacher_working_time;
+			std::cout << "\nNumber of compactness constraint violations: " << constraint_violations_compactness_constraints;
+			std::cout << "\nPreferences: " << preference_score;
+
+			double evactimesum = 0;
+			double evactimemax = 0;
+			for (auto&& et : evacuations_timeslot_max_travel_time)
+			{
+				evactimesum += et;
+				if (et > evactimemax)
+					evactimemax = et;
+			}
+			std::cout << "\nMaximum evacuation time: " << evactimemax;
+			std::cout << "\nSum evacuation times: " << evactimesum;
+		}
+	};
+
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*!
+	*	@brief	Class for the parallel threads.
+	*/
+	class heuristic_subprocess
+	{
+		/*!
+		*	@brief	The objective value of the current solution.
+		*/
+		information_objective_value current_objective;
 
 		/*!
-		*	@brief	Matrix in which the rows indicate the timeslot and the columns the travek time on each arc for travelling between consecutive lectures.
+		*	@brief	The current timetable solution.
+		*	Matrix in which the rows indicate the timeslot and the columns the room.
+		*	The value in a cell indicates the lecture that is assigned to that timeslot and room.
 		*/
-		matrix2D<double> travels_timeslot_time_per_arc;
+		matrix2D<int> current_solution;
 
 		/*!
-		*	@brief	Matrix in which the rows indicate the timeslot and the columns the travel time for each series of students for travelling between consecutive lectures.
+		*	@brief	The objective value of the best found solution.
 		*/
-		matrix2D<double> travels_timeslot_series_travel_time;
+		information_objective_value best_objective;
 
 		/*!
-		*	@brief	Matrix in which the rows indicate the timeslot and the columns the maximum travel time (i.e. slowest series of students) for travelling between consecutive lectures.
+		*	@brief	The best timetable solution found during the search process.
+		*	Matrix in which the rows indicate the timeslot and the columns the room.
+		*	The value in a cell indicates the lecture that is assigned to that timeslot and room.
 		*/
-		std::vector<double> travels_timeslot_max_travel_time;
+		matrix2D<int> best_solution;
+
+		/*!
+		*	@brief	Count and remember the number of constraint violations for the scheduling conflicts when recalculating the objective value for a candidate solution.
+		*/
+		double new_constraint_violations_scheduling_conflicts;
+
+		/*!
+		*	@brief	Count and remember the number of constraint violations for the room compatibilities when recalculating the objective value for a candidate solution.
+		*/
+		double new_constraint_violations_correct_room;
+
+		/*!
+		*	@brief	Count and remember the number of teacher working time violations when recalculating the objective value for a candidate solution.
+		*/
+		double new_constraint_violations_teacher_working_time;
+
+		/*!
+		*	@brief	Count and remember the number of constraint violations for the compactness constraints when recalculating the objective value for a candidate solution.
+		*/
+		double new_constraint_violations_compactness_constraints;
+
+		/*!
+		*	@brief	Calculate and remember the preference score when recalculating the objective value for a candidate solution.
+		*/
+		double new_preference_score;
 
 		/*!
 		*	@brief	New value for the evacuation time in the timeslot that is changed during a room swap.
@@ -160,81 +195,29 @@ namespace alg
 		double new_max_evac_time_changed_ts_roomswap = 0.0;
 
 		/*!
-		*	@brief	New value for the travel times in the timeslots that are changed during a room swap.
-		*	Used to updated the values of the vector with the travel times for all timeslots.
-		*/
-		std::vector<double> new_max_travel_time_changes_ts_roomswap{ 0.0, 0.0 };
-
-		/*!
 		*	@brief	New value for the evacuation times in the timeslots that are changed during a lecture swap or Kempe chain.
 		*	Used to updated the values of the vector with the evacuation times for all timeslots.
 		*/
 		std::vector<double> new_max_evac_time_changed_ts{ 0.0, 0.0 };
 
 		/*!
-		*	@brief	New value for the travel times in the timeslots that are changed during a lecture swap or Kempe chain.
-		*	Used to updated the values of the vector with the travel times for all timeslots.
+		*	@brief	The number of iterations.
 		*/
-		std::vector<double> new_max_travel_time_changes_ts{ 0.0, 0.0, 0.0, 0.0 };
-
-		/*!
-		*	@brief	Timeslots for which the travel times need to be calculated.
-		*/
-		std::vector<int> _relevant_timeslots;
+		size_t _iterations = 0;
 
 
 
 	public:
 		/*!
-		*	@brief	Run the heuristic.
+		*	@brief	The objective value of the current solution.
 		*/
-		void run();
+		size_t _process_id;
 
 		/*!
-		*	@brief	Is there a constraint set on the maximum preference score?
+		*	@brief	Get the number of iterations.
+		*	@returns	The number of iterations.
 		*/
-		bool _constraint_preferences = false;
-
-		/*!
-		*	@brief	The value of the constraint on the preferences.
-		*/
-		bool _constraint_preferences_value = 1e10;
-
-		/*!
-		*	@brief	The relative value of preferences (lambda) and travel or evacuation times (1 - lambda).
-		*/
-		double _lambda = 0;
-
-		/*!
-		*	@brief	The relative value of evacuation times (alpha) and travel times (1 - alpha).
-		*/
-		double _alpha = 1;
-
-		/*!
-		*	@brief	The allowed computation time for the heuristic (in seconds).
-		*/
-		double _time_limit = 1000;
-
-		/*!
-		*	@brief	The type of objective function.
-		*/
-		enum class objective_type
-		{
-			maximum_over_timeslots,	///< Maximum over all timeslots of evacuation or travel times
-			sum_over_timeslots,		///< Sum over all timeslots of evacuation or travel times
-		} _objective_type = objective_type::sum_over_timeslots;
-
-		/*!
-		*	@brief	The length of the LAHC list.
-		*/
-		size_t _LAHC_list_length = 500;
-
-		/*!
-		*	@brief	The weight/score of a constraint violation.
-		*/
-		size_t _penalty_value_constraint_violation = 10000;
-
-	private:
+		size_t get_iterations() const { return _iterations; }
 
 		/*!
 		*	@brief	Initialize the matrices for use during the algorithm.
@@ -242,16 +225,38 @@ namespace alg
 		void initialize();
 
 		/*!
-		*	@brief	The main LAHC loop.
+		*	@brief	Run the process for the given time limit.
+		*	@param	time_limit	The time limit for the process before synchronization.
+		*	@returns	The objective value of the best found solution.
 		*/
-		void LAHC();
+		double run(double time_limit);
 
 		/*!
-		*	@brief	Evaluate the objective value of a solution.
-		*	@returns	The objective value of the given solution.
+		*	@brief	Get the best found solution.
+		*	@returns	The best found solution.
 		*/
-		double evaluate(const matrix2D<int>& solution);
+		const matrix2D<int>& get_best_solution() const { return best_solution; }
 
+		/*!
+		*	@brief	Get the objective value of the best found solution.
+		*	@returns	The objective value of the best found solution.
+		*/
+		const information_objective_value& get_best_objective_value() const { return best_objective; }
+
+		/*!
+		*	@brief	Saves a solution (current & best are updated).
+		*	@param	solution	The solution that is set.
+		*	@param	objective_value	The objective value of the solution
+		*/
+		void set_solution(const matrix2D<int>& solution, const information_objective_value &objective_value)
+		{
+			current_solution = solution;	current_objective = objective_value;
+			best_solution = solution;		best_objective = objective_value;
+		}
+
+
+
+	private:
 		/*!
 		*	@brief	Evaluate the objective value of a solution using incremental evaluation for a room swap.
 		*	@param	solution	The current solution before changes are implemented.
@@ -283,15 +288,133 @@ namespace alg
 		*	@returns	The objective value of the new solution if the given changes were applied.
 		*/
 		double evaluate_incremental(matrix2D<int>& solution, double current_obj, const std::vector<std::pair<int, int>>& kempe_chain, int timeslot1, int timeslot2);
+	};
+
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*!
+	*	@brief	The main class for the heuristic.
+	*/
+	class heuristic_master
+	{
+		/*!
+		*	@brief	Name of the algorithm.
+		*/
+		static constexpr const char * algorithm_name = "SA Heuristic";
 
 		/*!
-		*	@brief	Clear all datastructures.
+		*	@brief	The objective value of the best found solution.
 		*/
-		void clear();
+		size_t total_iterations = 0;
 
 		/*!
-		*	@brief	Write algorithm output to a file or the screen.
+		*	@brief	The number of SA reheats.
 		*/
+		size_t reheats = 0;
+
+		/*!
+		*	@brief	The objective value of the best found solution.
+		*/
+		double best_objective = 1e20;
+
+		/*!
+		*	@brief	The best timetable solution found during the search process.
+		*	Matrix in which the rows indicate the timeslot and the columns the room.
+		*	The value in a cell indicates the lecture that is assigned to that timeslot and room.
+		*/
+		matrix2D<int> best_solution;
+
+		/*!
+		*	@brief	The different search subprocesses.
+		*/
+		std::vector<heuristic_subprocess> threads;
+
+
+
+	public:
+		/*!
+		*	@brief	The type of objective function.
+		*/
+		enum class objective_type
+		{
+			maximum_over_timeslots,	///< Maximum over all timeslots of evacuation or travel times
+			sum_over_timeslots,		///< Sum over all timeslots of evacuation or travel times
+		};
+
+		/*!
+		*	@brief	Run the heuristic.
+		*/
+		void run();
+
+		/*!
+		*	@brief	Is there a constraint set on the maximum preference score?
+		*/
+		static bool _constraint_preferences;
+
+		/*!
+		*	@brief	The value of the constraint on the preferences.
+		*/
+		static bool _constraint_preferences_value;
+
+		/*!
+		*	@brief	The relative value of preferences (lambda) and travel or evacuation times (1 - lambda).
+		*/
+		static double _lambda;
+
+		/*!
+		*	@brief	The allowed computation time for the heuristic (in seconds).
+		*/
+		static double _time_limit;
+
+		/*!
+		*	@brief	The number of synchronizations during the search process.
+		*/
+		static size_t _nb_synchronizations;
+
+		/*!
+		*	@brief	The type of objective function.
+		*/
+		static objective_type _objective_type;
+
+		/*!
+		*	@brief	The weight/score of a constraint violation.
+		*/
+		static double _penalty_value_constraint_violation;
+
+		/*!
+		*	@brief	The number of threads used in parallel implementation.
+		*/
+		static size_t _nb_threads;
+
+		/*!
+		*	@brief	The probabilities of the different moves.
+		*/
+		static double _probability_move[3];
+
+		/*!
+		*	@brief	The current temperature of the simulated annealing.
+		*/
+		static double _SA_temperature;
+
+		/*!
+		*	@brief	The coefficient to update the SA temperature: T' = alpha * T.
+		*/
+		static double _SA_alpha;
+
+		/*!
+		*	@brief	The start temperature of the SA.
+		*/
+		static double _SA_start_temperature;
+
+		/*!
+		*	@brief	The minimum temperature, when the SA is reheated.
+		*/
+		static double _SA_Tmin;
+
+
+	private:
 		void write_output();
 	};
 

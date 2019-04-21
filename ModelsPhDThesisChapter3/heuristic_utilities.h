@@ -15,7 +15,6 @@
 */
 namespace alg
 {
-
 	/*!
 	*	@brief	Two-dimensional matrix.
 	*/
@@ -47,22 +46,18 @@ namespace alg
 		*	@brief	Copy constructor.
 		*	@param	other	Another matrix to copy-construct a new matrix from.
 		*/
-		matrix2D(const matrix2D& other)
+		matrix2D(const matrix2D<T>& other)
 		{
-			if (this != &other)
-			{
-				_elements = other._elements;
-				_nb_columns = other._nb_columns;
-				_nb_rows = other._nb_rows;
-			}
-			return *this;
+			_elements = other._elements;
+			_nb_columns = other._nb_columns;
+			_nb_rows = other._nb_rows;
 		}
 
 		/*!
 		*	@brief	Assignment operator.
 		*	@param	other	Another matrix to assign-construct a new matrix from.
 		*/
-		T& operator=(const T& other)
+		matrix2D<T>& operator=(const matrix2D<T>& other)
 		{
 			if (this != &other)
 			{
@@ -204,23 +199,19 @@ namespace alg
 		*	@brief	Copy constructor.
 		*	@param	other	Another matrix to copy-construct a new matrix from.
 		*/
-		matrix3D(const matrix3D& other)
+		matrix3D(const matrix3D<T>& other)
 		{
-			if (this != &other)
-			{
-				_elements = other._elements;
-				_nb_columns = other._nb_columns;
-				_nb_rows = other._nb_rows;
-				_depth = other._depth;
-			}
-			return *this;
+			_elements = other._elements;
+			_nb_columns = other._nb_columns;
+			_nb_rows = other._nb_rows;
+			_depth = other._depth;
 		}
 
 		/*!
 		*	@brief	Assignment operator.
 		*	@param	other	Another matrix to assign-construct a new matrix from.
 		*/
-		matrix3D& operator=(const matrix3D& other)
+		matrix3D<T>& operator=(const matrix3D<T>& other)
 		{
 			if (this != &other)
 			{

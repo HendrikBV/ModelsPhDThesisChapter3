@@ -669,7 +669,7 @@ namespace alg
 				{
 					if (series_typeofeducation[s] == 0)
 					{
-						for (int t = 2; t < 3; ++t) // (1-3, 2-4,) and 3-5
+						for (int t = 0; t < 3; ++t) // (1-3, 2-4,) and 3-5
 						{
 							sense[0] = 'L';
 							rhs[0] = 1;
